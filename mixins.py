@@ -1,108 +1,141 @@
+""" Mixins """
+
+
 from django.contrib import messages
-from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import (
+    LoginRequiredMixin, PermissionRequiredMixin,
+    UserPassesTestMixin
+)
 
 
 class DashboardMixin(LoginRequiredMixin, PermissionRequiredMixin):
-    pass
+    """ Check if the user is authenticated and has the required permission """
 
 
 class MessageMixin:
-    """
-    Base mixin class to add success and error messages.
-    """
+    """ Base class to add messages """
+
     action = 'created'
-    success_message = '{} was {} successfully.'
-    error_message = 'An error occurred while processing.'
+    success = '{} was {} successfully.'
+    error = 'An error occurred while processing.'
 
-    def get_success_message(self):
-        return self.success_message.format(self.model._meta.verbose_name.title().capitalize(), self.action)
+    def get_success(self):
+        """ Return the success message """
 
-    def get_error_message(self):
-        return self.error_message
+        # Name of the model
+        name = self.model._meta.verbose_name.title().capitalize()
+
+        return self.success.format(name, self.action)
+
+    def get_error(self):
+        """ Return the success message """
+
+        return self.error
 
 
 class MessageMixinCreateView(MessageMixin):
-    """
-    A mixin for CreateView to set success and error messages.
-    """
+    """ Add messages to django.views.generic.CreateView """
 
     def post(self, request, *args, **kwargs):
-        response = super(MessageMixinCreateView, self).post(request, *args, **kwargs)
-        messages.success(request, self.get_success_message())
+        """ Handle post requests """
+
+        # Get the response
+        response = super().post(request, *args, **kwargs)
+
+        # Add the message
+        messages.success(request, self.get_success())
+
+        # Return the response
         return response
 
 
 class MessageMixinUpdateView(MessageMixin):
-    """
-    A mixin for UpdateView to set success and error messages.
-    """
+    """ Add messages to django.views.generic.UpdateView """
+
     action = 'updated'
 
     def post(self, request, *args, **kwargs):
+        """ Handle post requests """
+
+        # Get the object
         self.object = self.get_object()
-        messages.success(request, self.get_success_message())
-        return super().post(request, *args, **kwargs)
+
+        # Get the response
+        response = super().post(request, *args, **kwargs)
+
+        # Add the message
+        messages.success(request, self.get_success())
+
+        # Return the response
+        return response
 
 
 class MessageMixinDeleteView(MessageMixin):
-    """
-    A mixin for DeleteView to set success and error messages.
-    """
+    """ Add messages to django.views.generic.UpdateView """
     action = 'deleted'
 
     def post(self, request, *args, **kwargs):
-        messages.success(request, self.get_success_message())
+        """ Handle post requests """
+
+        messages.success(request, self.get_success())
         return self.delete(request, *args, **kwargs)
 
 
 class UserRequiredMixin(LoginRequiredMixin):
-    """
-    A mixin for CreateView to set the owner of the object.
-    """
+    """ Add the user field to a model when creating automatically """
 
     def form_valid(self, form):
-        """ Set the owner of the object. """
+        """ Add the user field """
+
+        # Save without committing
         instance = form.save(commit=False)
+
+        # Add the user field
         instance.user = self.request.user
+
+        # Save the model
         instance.save()
-        return super(UserRequiredMixin, self).form_valid(form)
+
+        return super().form_valid(form)
 
 
-class AuthorityRequiredMixin(LoginRequiredMixin):
-    """
-    A mixin for UpdateView, DetailView and ListView to limit the user to only modifying or viewing their own data.
-    """
+class OwnerMixin(LoginRequiredMixin):
+    """ Limit the user to view or update their own data """
 
     def get_queryset(self):
-        """ Limit a User to only modifying or viewing their own data. """
-        query_set = super(AuthorityRequiredMixin, self).get_queryset()
-        return query_set.filter(user=self.request.user)
+        """ Filter the queryset """
+
+        # Get the queryset
+        queryset = super().get_queryset()
+
+        # Filter the queryset
+        queryset.filter(user=self.request.user)
+
+        return queryset
 
 
-class RequestUser(UserPassesTestMixin):
-    """
-    A mixin for UpdateView, DeleteView and DetailView to limit the user to only modifying or viewing their
-    own user object. In other words, the current logged in user can edit their account only.
-    """
+class UserMixin(UserPassesTestMixin):
+    """ Limit the user to view or update their own user object """
 
     def test_func(self):
+        """ Test function """
+
         return self.request.user == self.get_object()
 
 
-class SuperUserRequiredMixin(UserPassesTestMixin):
-    """
-    Verify that the current user is superuser.
-    """
+class SuperUserMixin(UserPassesTestMixin):
+    """ Verify that the current logged in user is a super user """
 
     def test_func(self):
+        """ Test function """
+
         return self.request.user.is_superuser
 
 
-class StaffUserRequiredMixin(UserPassesTestMixin):
-    """
-    Verify that the current user is staff.
-    """
+class StaffUserMixin(UserPassesTestMixin):
+    """ Verify that the current user is a staff user """
 
     def test_func(self):
-        return self.request.user.is_staff
+        """ Test function """
 
+        return self.request.user.is_staff

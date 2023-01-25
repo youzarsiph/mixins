@@ -1,2 +1,3 @@
 # mixins
-Custom django access mixins
+
+Custom django mixins
