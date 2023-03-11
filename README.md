@@ -14,7 +14,7 @@ Now you can start using the mixins.
 
 ## Usage
 
-Let's that we want to implement a view that accepts requests from superusers only. To achieve this we can use `SuperUserMixin`:
+Let's say that we want to implement a view that accepts requests from superusers only. To achieve this we can use `SuperUserMixin`:
 
 ```python
 """ Views.py """
